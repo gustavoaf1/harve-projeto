@@ -1,10 +1,25 @@
 import { NextResponse } from "next/server"
-import { sql } from "@/lib/db"
 
 export async function POST(request) {
   console.log("=== INICIANDO API /api/tentativas/iniciar ===")
 
   try {
+    // Verificar se DATABASE_URL está configurada
+    if (!process.env.DATABASE_URL) {
+      console.error("DATABASE_URL não configurada")
+      return NextResponse.json(
+        {
+          error: "Banco de dados não configurado",
+          message: "A integração com Neon precisa ser configurada no Vercel",
+          instructions: "Vá em Settings > Integrations no painel do Vercel e adicione a integração Neon",
+        },
+        { status: 500 },
+      )
+    }
+
+    // Importar sql dinamicamente após verificar a variável
+    const { sql } = await import("@/lib/db")
+
     // Log da requisição
     console.log("Método:", request.method)
     console.log("URL:", request.url)
@@ -121,6 +136,26 @@ export async function GET() {
   console.log("=== TESTE GET /api/tentativas/iniciar ===")
 
   try {
+    // Verificar se DATABASE_URL está configurada
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        {
+          error: "DATABASE_URL não configurada",
+          message: "Configure a integração Neon no Vercel",
+          instructions: [
+            "1. Acesse o painel do Vercel",
+            "2. Vá em Settings > Integrations",
+            "3. Adicione a integração Neon",
+            "4. Faça redeploy do projeto",
+          ],
+        },
+        { status: 500 },
+      )
+    }
+
+    // Importar sql dinamicamente
+    const { sql } = await import("@/lib/db")
+
     // Testar conexão com banco
     const testConnection = await sql`SELECT NOW() as current_time`
     console.log("Teste de conexão:", testConnection)
