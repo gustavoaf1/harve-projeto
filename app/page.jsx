@@ -1,5 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoginForm } from "@/components/login-form"
+import { Suspense } from "react"
+import { LoadingSpinner } from "@/components/ui/loading"
 
 export default function Home() {
   return (
@@ -10,7 +12,9 @@ export default function Home() {
           <CardDescription className="text-center">Digite seu login e nome para continuar</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm />
+          <Suspense fallback={<LoadingSpinner />}>
+            <LoginForm />
+          </Suspense>
         </CardContent>
       </Card>
     </div>

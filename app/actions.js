@@ -2,6 +2,28 @@
 
 import { sql } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { cache } from "react"
+
+// Cache para evitar consultas repetidas
+const cachedOpcoes = cache(async () => {
+  try {
+    const opcoes = await sql`SELECT id, descricao FROM opcoes`
+    return opcoes
+  } catch (error) {
+    console.error("Erro ao obter opções:", error)
+    return []
+  }
+})
+
+const cachedPerguntas = cache(async () => {
+  try {
+    const perguntas = await sql`SELECT id, texto, tipo FROM perguntas ORDER BY id`
+    return perguntas
+  } catch (error) {
+    console.error("Erro ao obter perguntas:", error)
+    return []
+  }
+})
 
 // Função para autenticar ou cadastrar usuário
 export async function autenticarUsuario(formData) {
@@ -13,9 +35,9 @@ export async function autenticarUsuario(formData) {
   }
 
   try {
-    // Verificar se o usuário já existe
+    // Verificar se o usuário já existe - usar uma query otimizada
     const usuarios = await sql`
-      SELECT * FROM usuarios WHERE login = ${login}
+      SELECT id, login, nome FROM usuarios WHERE login = ${login} LIMIT 1
     `
 
     let usuario
@@ -47,11 +69,11 @@ export async function autenticarUsuario(formData) {
     return { success: true, userId: usuario.id }
   } catch (error) {
     console.error("Erro ao autenticar usuário:", error)
-    return { error: "Erro ao processar a solicitação" }
+    return { error: "Erro ao processar a solicitação. Tente novamente." }
   }
 }
 
-// Função para salvar a opção escolhida
+// Função para salvar a opção escolhida - agora com ON CONFLICT funcionando
 export async function salvarOpcao(formData) {
   const usuarioId = Number(formData.get("usuarioId"))
   const opcaoId = Number(formData.get("opcaoId"))
@@ -61,25 +83,13 @@ export async function salvarOpcao(formData) {
   }
 
   try {
-    // Verificar se já existe uma escolha para este usuário
-    const escolhas = await sql`
-      SELECT id FROM usuario_opcao WHERE usuario_id = ${usuarioId}
+    // Agora podemos usar UPSERT com a restrição de unicidade adicionada
+    await sql`
+      INSERT INTO usuario_opcao (usuario_id, opcao_id)
+      VALUES (${usuarioId}, ${opcaoId})
+      ON CONFLICT (usuario_id) 
+      DO UPDATE SET opcao_id = ${opcaoId}, data_escolha = CURRENT_TIMESTAMP
     `
-
-    if (escolhas.length > 0) {
-      // Atualizar escolha existente
-      await sql`
-        UPDATE usuario_opcao 
-        SET opcao_id = ${opcaoId}, data_escolha = CURRENT_TIMESTAMP
-        WHERE usuario_id = ${usuarioId}
-      `
-    } else {
-      // Inserir nova escolha
-      await sql`
-        INSERT INTO usuario_opcao (usuario_id, opcao_id)
-        VALUES (${usuarioId}, ${opcaoId})
-      `
-    }
 
     // Em vez de redirecionar, retornar o ID do usuário
     revalidatePath("/escolher-opcao")
@@ -106,16 +116,12 @@ export async function salvarRespostas(formData) {
       DELETE FROM respostas WHERE usuario_id = ${usuarioId}
     `
 
-    // Salvar resposta 1
+    // Inserir respostas em batch
     await sql`
       INSERT INTO respostas (usuario_id, pergunta_id, resposta)
-      VALUES (${usuarioId}, 1, ${resposta1})
-    `
-
-    // Salvar resposta 2
-    await sql`
-      INSERT INTO respostas (usuario_id, pergunta_id, resposta)
-      VALUES (${usuarioId}, 2, ${resposta2})
+      VALUES 
+        (${usuarioId}, 1, ${resposta1}),
+        (${usuarioId}, 2, ${resposta2})
     `
 
     // Calcular nota baseada nas respostas
@@ -145,25 +151,13 @@ export async function salvarRespostas(formData) {
     // Garantir que a nota não exceda 10
     nota = Math.min(nota, 10)
 
-    // Verificar se já existe uma nota para este usuário
-    const notas = await sql`
-      SELECT id FROM notas WHERE usuario_id = ${usuarioId}
+    // Agora podemos usar UPSERT para a nota também
+    await sql`
+      INSERT INTO notas (usuario_id, nota)
+      VALUES (${usuarioId}, ${nota})
+      ON CONFLICT (usuario_id) 
+      DO UPDATE SET nota = ${nota}, data_calculo = CURRENT_TIMESTAMP
     `
-
-    if (notas.length > 0) {
-      // Atualizar nota existente
-      await sql`
-        UPDATE notas 
-        SET nota = ${nota}, data_calculo = CURRENT_TIMESTAMP
-        WHERE usuario_id = ${usuarioId}
-      `
-    } else {
-      // Inserir nova nota
-      await sql`
-        INSERT INTO notas (usuario_id, nota)
-        VALUES (${usuarioId}, ${nota})
-      `
-    }
 
     // Em vez de redirecionar, retornar o ID do usuário
     revalidatePath("/perguntas")
@@ -176,24 +170,12 @@ export async function salvarRespostas(formData) {
 
 // Função para obter as opções disponíveis
 export async function obterOpcoes() {
-  try {
-    const opcoes = await sql`SELECT id, descricao FROM opcoes`
-    return opcoes
-  } catch (error) {
-    console.error("Erro ao obter opções:", error)
-    return []
-  }
+  return cachedOpcoes()
 }
 
 // Modificar a função obterPerguntas para incluir o tipo
 export async function obterPerguntas() {
-  try {
-    const perguntas = await sql`SELECT id, texto, tipo FROM perguntas ORDER BY id`
-    return perguntas
-  } catch (error) {
-    console.error("Erro ao obter perguntas:", error)
-    return []
-  }
+  return cachedPerguntas()
 }
 
 // Função para obter a nota do usuário
@@ -204,6 +186,7 @@ export async function obterNota(usuarioId) {
       FROM notas n
       JOIN usuarios u ON n.usuario_id = u.id
       WHERE n.usuario_id = ${usuarioId}
+      LIMIT 1
     `
 
     if (notas.length === 0) {
