@@ -9,10 +9,11 @@ import ResultDisplay from "@/components/result-display"
 
 
 export default function Home() {
+  
   const [step, setStep] = useState(1)
   const [userData, setUserData] = useState({ nome: "", email: "" })
   const [tentativaId, setTentativaId] = useState(null)
-  const [setSelectedForm] = useState(null)
+  const [selectedForm, setSelectedForm] = useState(null)
   const [result, setResult] = useState(null)
 
   const handleUserSubmit = async (data) => {

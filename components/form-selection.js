@@ -9,8 +9,7 @@ export default function FormSelection({ onSelect }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // In a real application, you would fetch available forms
-    // For this example, we'll use dummy data
+    // Simula fetch dos formulários
     setTimeout(() => {
       setForms([
         { id: 1, title: "Formulário de Avaliação" },
@@ -19,6 +18,10 @@ export default function FormSelection({ onSelect }) {
       setLoading(false)
     }, 500)
   }, [])
+
+  const handleClick = (formId) => {
+    onSelect(formId)
+  }
 
   if (loading) {
     return (
@@ -37,7 +40,7 @@ export default function FormSelection({ onSelect }) {
           <Card
             key={form.id}
             className="cursor-pointer hover:border-gray-400 transition-colors"
-            onClick={() => onSelect(form.id)}
+            onClick={() => handleClick(form.id)}
           >
             <CardHeader className="py-4">
               <CardTitle className="text-lg">{form.title}</CardTitle>
