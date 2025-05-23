@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 
-export default function QuestionForm({ tentativaId, onSubmit }) {
+export default function QuestionForm({onSubmit }) {
   const [questions, setQuestions] = useState([])
   const [loading, setLoading] = useState(true)
   const [answers, setAnswers] = useState({})

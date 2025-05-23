@@ -6,6 +6,8 @@ import FormSelection from "@/components/form-selection"
 import QuestionForm from "@/components/question-form"
 import ResultDisplay from "@/components/result-display"
 
+
+
 export default function Home() {
   const [step, setStep] = useState(1)
   const [userData, setUserData] = useState({ nome: "", email: "" })
