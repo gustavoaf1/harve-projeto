@@ -1,19 +1,4 @@
-y
-## Getting Started
+OLa, Nesse projeto desenvolvi uma questionario de pergunta e resposta com uma nota final ao usuario.
+lembrando que é um projeto em uma banco de dados gratuito, onde causa uma pequena lentidão ao nevegar.
 
-First, run the development server:
-
-\`\`\`bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-\`\`\`
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-
-# harve-projeto
+[pjgu.tp](https://www.pjgu.top/)
